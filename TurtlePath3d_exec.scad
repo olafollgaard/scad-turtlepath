@@ -4,9 +4,9 @@
 use <Assertions.scad>;
 
 // Execute steps and concatenate into full path
-function tp3d_execPath(steps,step_n,st,hv,nv,debug_name) =
-let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,nv,debug_name),
-	step_debug_prefix=str(debug_name,".",step_n),
+function tp3d_execPath(steps,step_n,st,hv,nv,debug_prefix) =
+let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,nv,debug_prefix),
+	step_debug_prefix=str(debug_prefix,".",step_n),
 	curr=tp3d_execStep(acc,steps[step_n],step_debug_prefix),
 	path_pts=[ each acc.x, each curr.x ],
 	path_hvs=len(curr.x)>0 || len(curr.y)==0 ? [ each acc.y, each curr.y ]

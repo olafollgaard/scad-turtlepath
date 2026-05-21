@@ -13,26 +13,45 @@ function TurtlePath3d(
 	start_hv=[0,1,0],
 	// Initial normal vector ('up') for the 'horizontal' plane
 	start_nv=[0,0,1],
+	// Drop last point in path, to avoid duplicate point when creating a loop
+	drop_last=false,
 	// Prefix for assertion messages
-	debug_name = "Path3d") =
-assert(is_list(steps) && len(steps)>0,debug_name)
-assert(len(AssertValidVectorList([start_pt],3,prefix=debug_name))==1,debug_name)
-assert(len(AssertValidVectorList([start_hv],3,require_nonzero_norm=true,prefix=debug_name))==1,debug_name)
-assert(len(AssertValidVectorList([start_nv],3,require_nonzero_norm=true,prefix=debug_name))==1,debug_name)
+	debug_prefix = "Path3d") =
+assert(is_list(steps) && len(steps)>0,debug_prefix)
+assert(len(AssertValidVectorList([start_pt],3,prefix=debug_prefix))==1,debug_prefix)
+assert(len(AssertValidVectorList([start_hv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
+assert(len(AssertValidVectorList([start_nv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
 let(s_hv=start_hv/norm(start_hv),
 	s_nv=start_nv/norm(start_nv))
-assert((s_hv*s_nv)!=1,str(debug_name,": start_hv and start_nv must not be parallel"))
+assert((s_hv*s_nv)!=1,str(debug_prefix,": start_hv and start_nv must not be parallel"))
 let(nv_proj=start_hv*(start_hv*start_nv)/(start_hv*start_hv),
-	nv_perp=start_nv-nv_proj)
-tp3d_execPath(steps,
-	step_n=len(steps)-1,
-	st=start_pt,
-	hv=start_hv/norm(start_hv),
-	nv=nv_perp/norm(nv_perp),
-	debug_name=debug_name);
+	nv_perp=start_nv-nv_proj,
+	pt=tp3d_execPath(steps,
+		step_n=len(steps)-1,
+		st=start_pt,
+		hv=start_hv/norm(start_hv),
+		nv=nv_perp/norm(nv_perp),
+		debug_prefix=debug_prefix))
+[
+	[ for(i=[0:len(pt.x)-(drop_last ? 2 : 1)]) pt.x[i] ],
+	for(i=[1:len(pt)-1]) pt[i],
+];
 
 function tp3d_GetPathXY(acc,skip_last=false) =
 [ for(i=[0:len(acc.x)-(skip_last ? 2 : 1)]) let(p=acc.x[i]) [p.x,p.y] ];
+
+function tp3d_GetCursor(acc) =
+let(sp=acc.x[len(acc.x)-1],
+	hv=acc.y[len(acc.y)-1],
+	nv=acc.z[len(acc.z)-1])
+[ sp,hv,nv ];
+
+function tp3d_IdxByLabel(label,acc,debug_prefix="") =
+assert(is_string(label),debug_prefix)
+assert(is_list(acc) && len(acc)>3 && is_list(acc[3]),debug_prefix)
+let(found=[ for(p=acc[3]) if(p.x==label) p.y ])
+assert(len(found)>0,str(debug_prefix,":unknown label '",label,"'"))
+found.x;
 
 // Add label for previous step
 function tp3d_AddLabel(acc,debug_prefix,name,di=0) =
