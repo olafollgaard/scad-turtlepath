@@ -1,8 +1,9 @@
 /*
-	TurtlePath 3D
+	TurtlePath 3d
 */
 use <Assertions.scad>;
 use <Rotate3dVector.scad>;
+use <TurtlePath3d_exec.scad>;
 
 function TurtlePath3d(
 	steps,
@@ -16,8 +17,8 @@ function TurtlePath3d(
 	debug_name = "Path3d") =
 assert(is_list(steps) && len(steps)>0,debug_name)
 assert(len(AssertValidVectorList([start_pt],3,prefix=debug_name))==1,debug_name)
-assert(len(AssertValidVectorList([start_hv],3,prefix=debug_name))==1,debug_name)
-assert(len(AssertValidVectorList([start_nv],3,prefix=debug_name))==1,debug_name)
+assert(len(AssertValidVectorList([start_hv],3,require_nonzero_norm=true,prefix=debug_name))==1,debug_name)
+assert(len(AssertValidVectorList([start_nv],3,require_nonzero_norm=true,prefix=debug_name))==1,debug_name)
 let(s_hv=start_hv/norm(start_hv),
 	s_nv=start_nv/norm(start_nv))
 assert((s_hv*s_nv)!=1,str(debug_name,": start_hv and start_nv must not be parallel"))
@@ -30,62 +31,8 @@ tp3d_execPath(steps,
 	nv=nv_perp/norm(nv_perp),
 	debug_name=debug_name);
 
-// Execute steps and concatenate into full path
-function tp3d_execPath(steps,step_n,st,hv,nv,debug_name) =
-let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,nv,debug_name),
-	step_debug_prefix=str(debug_name,".",step_n),
-	curr=tp3d_execStep(acc,steps[step_n],step_debug_prefix),
-	path_pts=[ each acc.x, each curr.x ],
-	path_hvs=len(curr.x)>0 || len(curr.y)==0 ? [ each acc.y, each curr.y ]
-	: [ for(i=[0:len(acc.y)-2]) acc.y[i], curr.y[0] ],
-	path_nvs=len(curr.x)>0 || len(curr.z)==0 ? [ each acc.z, each curr.z ]
-	: [ for(i=[0:len(acc.z)-2]) acc.z[i], curr.z[0] ],
-	labels=[ each acc[3], [step_debug_prefix,len(acc.x)-1], each curr[3] ],
-	stored=[ each acc[4], each curr[4] ])
-[ path_pts, path_hvs, path_nvs, labels, stored ];
-
-// Execute single step
-function tp3d_execStep(acc,step,debug_prefix) =
-assert(is_function(step),debug_prefix)
-let(res=step(acc,debug_prefix))
-assert(is_list(res) && len(res)>=1,debug_prefix)
-let(step_pts=is_list(res.x) && len(res.x)==0 ? []
-	: AssertValidVectorList(res.x,3,prefix=debug_prefix),
-	step_hvs=len(res)>=2 && is_list(res.y) && len(res.y)>0
-	? AssertValidVectorList(res.y,3,require_nonzero_norm=true,prefix=debug_prefix)
-	: [ for(i=[1:len(step_pts)]) acc.y[len(acc.y)-1] ],
-	step_nvs=len(res)>=3 && is_list(res.z) && len(res.z)>0
-	? AssertValidVectorList(res.z,3,require_nonzero_norm=true,prefix=debug_prefix)
-	: [ for(i=[1:len(step_pts)]) acc.z[len(acc.z)-1] ])
-assert(len(step_hvs)==len(step_nvs),debug_prefix)
-assert(len(step_pts)==0 ? len(step_hvs)<=1 : len(step_hvs)==len(step_pts),debug_prefix)
-let(perp_nvs=[
-		for(i=[0:len(step_nvs)-1])
-		let(s_hv=step_hvs[i]/norm(step_hvs[i]),
-			s_nv=step_nvs[i]/norm(step_nvs[i]))
-		assert((s_hv*s_nv)!=1,str(debug_prefix,"@",i,": hv and nv must not be parallel"))
-		s_nv-s_hv*(s_hv*s_nv)/(s_hv*s_hv)
-	],
-	step_labels=len(res)<=3 ? []
-	: assert(is_list(res[3]),debug_prefix) [
-		for(i=res[3])
-		assert(is_list(i) && len(i)==2 && is_string(i.x) && is_num(i.y),debug_prefix)
-		assert(len([for(p=acc[3]) if(p.x==i.x) p])==0,str(debug_prefix,": duplicate label '",i.x,"'"))
-		i
-	],
-	step_stored=len(res)<=4 ? []
-	: assert(is_list(res[4]),debug_prefix) [
-		for(i=res[4])
-		assert(is_list(i) && len(i)==2 && is_string(i.x),debug_prefix)
-		i
-	])
-[
-	step_pts,
-	[ for(hv=step_hvs) hv/norm(hv) ],
-	[ for(nv=perp_nvs) nv/norm(nv) ],
-	step_labels,
-	step_stored,
-];
+function tp3d_GetPathXY(acc,skip_last=false) =
+[ for(i=[0:len(acc.x)-(skip_last ? 2 : 1)]) let(p=acc.x[i]) [p.x,p.y] ];
 
 // Add label for previous step
 function tp3d_AddLabel(acc,debug_prefix,name,di=0) =
@@ -184,3 +131,27 @@ function tp3d_rotateSteps(v,q,n,debug_prefix) =
 let(prev=n==1 ? [] : tp3d_rotateSteps(v,q,n-1,debug_prefix),
 	vcurr=n==1 ? v : prev[len(prev)-1])
 [ each prev, Rotate3dVector_UseQuaternion(vcurr,q,debug_prefix) ];
+
+// Pivot in place to given hv and nv
+function tp3d_PivotTo(acc,debug_prefix,hv,nv) =
+assert(len(AssertValidVectorList([hv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
+assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
+[
+	[], [hv/norm(hv)], [nv/norm(nv)]
+];
+
+// Pivot in place
+function tp3d_Pivot(acc,debug_prefix,a_horz=0,a_vert=0,a_roll=0) =
+assert(is_list(acc) && len(acc)>=3,debug_prefix)
+assert(is_num(a_horz) && is_num(a_vert) && is_num(a_roll),debug_prefix)
+let(hv_org=acc.y[len(acc.y)-1],
+	nv_org=acc.z[len(acc.z)-1],
+	hv_h=a_horz==0 ? hv_org : Rotate3dVector(v=hv_org,k=nv_org,a=a_horz,debug_prefix=debug_prefix),
+	nv_h=nv_org,
+	sv_h=-cross(nv_h,hv_h),
+	hv_v=a_vert==0 ? hv_h : Rotate3dVector(v=hv_h,k=sv_h,a=a_vert,debug_prefix=debug_prefix),
+	nv_v=a_vert==0 ? nv_h : Rotate3dVector(v=nv_h,k=sv_h,a=a_vert,debug_prefix=debug_prefix),
+	hv_r=hv_v,
+	nv_r=a_roll==0 ? nv_v : Rotate3dVector(v=nv_v,k=hv_v,a=-a_roll,debug_prefix=debug_prefix),
+	)
+tp3d_PivotTo(acc,debug_prefix,hv_r,nv_r);
