@@ -23,10 +23,6 @@ module tp3d_Sweep(
 	// - [ "torus" ] or [ "path-loop" ]
 	//		loop both profile points and path points
 	//		- there are no end faces, result will be a torus
-	// - [ "end-centers", <start_3dpt=undef>, <end_3dpt=undef> ]
-	//		loop the profile points and use given center points for start/end faces
-	//		- use generated points from path.x[0] as edge of start face
-	//		- use generated points from path.x[n-1] as edge of end face
 	// - [ "plate-edge" ] or [ "face-edges" ]
 	//		loop the path points, but not the profile points
 	//		- use generated points from profile[0] along path as edge of 'start' face
@@ -63,7 +59,6 @@ assert(is_list(closure) && len(closure)>0 && is_string(closure[0]),debug_prefix)
 let(closure_type=closure[0])
 assert(closure_type=="bar" || closure_type=="face-ends" || closure_type=="zip-ends"
 	|| closure_type=="torus" || closure_type=="path-loop"
-	|| closure_type=="end-centers"
 	|| closure_type=="plate-edge" || closure_type=="face-edges" || closure_type=="zip-edges"
 	|| closure_type=="tube" || closure_type=="cap-tube",
 	debug_prefix)
@@ -76,9 +71,7 @@ let(outer_profile=profile,
 	: AssertValidVectorList(is_list(inner_profile) ? inner_profile : inner_profile(0),2,prefix=debug_prefix))
 assert(closure_type=="tube" || closure_type=="cap-tube"
 	? len(inner_profile_pts)==len(outer_profile_pts) : true,debug_prefix)
-let(ci_start=prn*ptn,
-	ci_end=ci_start+1,
-	path_loop= closure_type=="torus" || closure_type=="path-loop"
+let(path_loop= closure_type=="torus" || closure_type=="path-loop"
 		|| closure_type=="plate-edge" || closure_type=="face-edges" || closure_type=="zip-edges"
 		|| closure_type=="tube",
 	profile_loop= closure_type!="plate-edge" && closure_type!="face-edges" && closure_type!="zip-edges",
@@ -100,10 +93,6 @@ let(ci_start=prn*ptn,
 	points=
 	[
 		each outer_pts, each inner_pts,
-		if (closure_type=="end-centers") each [
-			is_list(closure.y) ? closure.y : path.x[0],
-			is_list(closure.z) ? closure.z : path.x[ptn-1]
-		],
 	],
 	even=prn%2==0,
 	zs=closure_type=="zip-ends" && is_num(closure.y) ? closure.y : 0,
@@ -133,20 +122,6 @@ let(ci_start=prn*ptn,
 		: closure_type=="bar" || closure_type=="face-ends" ? [
 			[for(i=[0:prn-1]) pidx(i,0)],
 			[for(i=[prn-1:-1:0]) pidx(i,ptn-1)]
-		]
-		: closure_type=="end-centers" ? [
-			for (i=[0:prn-1])
-			[
-				pidx(i+0,0),
-				pidx(i+1,0),
-				ci_start,
-			],
-			for (i=[0:prn-1])
-			[
-				pidx(i+1,ptn-1),
-				pidx(i+0,ptn-1),
-				ci_end,
-			],
 		]
 		: closure_type=="zip-edges" ?
 		let(zLb=[for(i=[0:zn-1]) pidx(0,zs+i)],
