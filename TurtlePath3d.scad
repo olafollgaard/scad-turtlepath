@@ -1,21 +1,43 @@
 /*
 	TurtlePath 3d
+	-------------
+	Path/profile generation via step by step instructions
+	- Easier than managing and aligning rounded corner centers and angles manually
+	- Named in homage to https://en.wikipedia.org/wiki/Turtle_graphics
+	- This version is native 3d, supporting Yaw ("turn"), Pitch and Roll operations
+	- Also, the primary step parameters are relative to the current heading, just
+		like the original TurtleGraphics
 */
 use <Assertions.scad>;
 use <Rotate3dVector.scad>;
 use <TurtlePath3d_exec.scad>;
 
+/***************************************************************************************/
+// Main TurtlePath3d function
+// Returns: [ path_pts, path_hvs, path_nvs, labels, stored ]
+// - path_pts: a 3d point for each step
+// - path_hvs: a 3d heading vector for each step
+// - path_nvs: a 3d 'horizontal' plane normal vector ('up') for each step
+// - labels: a list of ["label",idx] pairs for step index lookup by name
+// - stored: a list of ["name",value] pairs for custom storage
+
 function TurtlePath3d(
+	// steps: Step by step instructions, each of which must be a function(acc,dp):
+	// - acc: The accumulated result so far, on the same format as the main result
+	// - dp: Debugging prefix for assertion messages
+	// Each step function must return its contribution to the main result, with only
+	// the path_pts part being mandatory; the hv/nv vectors lists, if omitted, will be
+	// automatically padded with the last hv/nv values.
 	steps,
-	// Start 3d point
+	// start_pt: Start 3d point
 	start_pt=[0,0,0],
-	// Initial heading vector ('forward') in the 'horizontal' plane
+	// start_hv: Initial heading vector ('forward') in the 'horizontal' plane
 	start_hv=[0,1,0],
-	// Initial normal vector ('up') for the 'horizontal' plane
+	// start_nv: Initial normal vector ('up') for the 'horizontal' plane
 	start_nv=[0,0,1],
-	// Drop last point in path, to avoid duplicate point when creating a loop
+	// drop_last: Drop last point in path, to avoid duplicate point when creating a loop
 	drop_last=false,
-	// Prefix for assertion messages
+	// debug_prefix: Prefix for assertion messages
 	debug_prefix = "Path3d") =
 assert(is_list(steps) && len(steps)>0,debug_prefix)
 assert(len(AssertValidVectorList([start_pt],3,prefix=debug_prefix))==1,debug_prefix)
@@ -37,14 +59,25 @@ let(nv_proj=start_hv*(start_hv*start_nv)/(start_hv*start_hv),
 	for(i=[1:len(pt)-1]) pt[i],
 ];
 
+/***************************************************************************************/
+// Generate a 2d path from the accumulated/main result
+// - Simply copies the X and Y parts of path_pts and drops the Z part
+// - Intended for generating a profile for TurtlePath3d_Sweep() using TurtlePath3d()
+
 function tp3d_GetPathXY(acc,skip_last=false) =
 [ for(i=[0:len(acc.x)-(skip_last ? 2 : 1)]) let(p=acc.x[i]) [p.x,p.y] ];
+
+/***************************************************************************************/
+// Extract last point, hv and nv from the accumulated result
 
 function tp3d_GetCursor(acc) =
 let(sp=acc.x[len(acc.x)-1],
 	hv=acc.y[len(acc.y)-1],
 	nv=acc.z[len(acc.z)-1])
 [ sp,hv,nv ];
+
+/***************************************************************************************/
+// Lookup the step index of a given label
 
 function tp3d_IdxByLabel(label,acc,debug_prefix="") =
 assert(is_string(label),debug_prefix)
@@ -53,7 +86,9 @@ let(found=[ for(p=acc[3]) if(p.x==label) p.y ])
 assert(len(found)>0,str(debug_prefix,":unknown label '",label,"'"))
 found.x;
 
-// Add label for previous step
+/***************************************************************************************/
+// Add label for previous step, with an optional 'delta' to adjust the recorded index
+
 function tp3d_AddLabel(acc,debug_prefix,name,di=0) =
 assert(is_string(name),debug_prefix)
 assert(is_num(di),debug_prefix)
@@ -61,7 +96,9 @@ assert(is_num(di),debug_prefix)
 	[],[],[],[[name,len(acc.x)-1+di]]
 ];
 
+/***************************************************************************************/
 // Step forward d mm in n steps
+
 function tp3d_Straight(acc,debug_prefix,d,n=1) =
 assert(is_num(d) && d>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
@@ -74,7 +111,9 @@ let(sp=acc.x[len(acc.x)-1],
 	[ for(i=[1:n]) nv ],
 ];
 
+/***************************************************************************************/
 // Turn horizontally by angle a (positive:ccw,negative:cw) with radius r in n steps
+
 function tp3d_Turn(acc,debug_prefix,a,r,dn=undef,n=10) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a) && a!=0,debug_prefix)
@@ -102,7 +141,9 @@ let(sp=acc.x[len(acc.x)-1],
 	[ for(i=[1:n]) nv ],
 ];
 
+/***************************************************************************************/
 // Pitch vertically by angle a (positive:up,negative:down) with radius r in n steps
+
 function tp3d_Pitch(acc,debug_prefix,a,r,ds=undef,n=10) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a) && a!=0,debug_prefix)
@@ -130,7 +171,9 @@ let(sp=acc.x[len(acc.x)-1],
 	[ each tp3d_rotateSteps(nv,q,n,debug_prefix) ],
 ];
 
+/***************************************************************************************/
 // Roll around hv by angle a (positive:ccw,negative:cw) in d mm in n steps
+
 function tp3d_Roll(acc,debug_prefix,a,d,n=10) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a) && a!=0,debug_prefix)
@@ -151,7 +194,9 @@ let(prev=n==1 ? [] : tp3d_rotateSteps(v,q,n-1,debug_prefix),
 	vcurr=n==1 ? v : prev[len(prev)-1])
 [ each prev, Rotate3dVector_UseQuaternion(vcurr,q,debug_prefix) ];
 
-// Pivot in place to given hv and nv
+/***************************************************************************************/
+// Pivot in place to given absolute hv and nv
+
 function tp3d_PivotTo(acc,debug_prefix,hv,nv) =
 assert(len(AssertValidVectorList([hv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
 assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
@@ -159,7 +204,13 @@ assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_p
 	[], [hv/norm(hv)], [nv/norm(nv)]
 ];
 
-// Pivot in place
+/***************************************************************************************/
+// Pivot in place by given angles relative to the 'horizontal' plane
+// - a_horz: angle to pivot 'left'/'right'
+// - a_vert: angle to pivot 'up'/'down'
+// - a_roll: angle to roll 'ccw'/'cw'
+// Pivot rotations are performed in the order 'horz', 'vert', 'roll'
+
 function tp3d_Pivot(acc,debug_prefix,a_horz=0,a_vert=0,a_roll=0) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a_horz) && is_num(a_vert) && is_num(a_roll),debug_prefix)

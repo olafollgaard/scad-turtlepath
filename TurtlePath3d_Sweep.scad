@@ -1,9 +1,12 @@
 /*
-	TurtlePath 3D Sweep
+	TurtlePath 3d Sweep
 */
 use <Assertions.scad>;
 
-module tp3d_Sweep(
+/***************************************************************************************/
+// Sweep module, building a solid from TurtlePath3d results
+
+module TurtlePath3d_Sweep(
 	// profile points, either as a simple list of 2d points or as a lambda
 	// expression <function(i)> that must generate a list of 2d points
 	// - all results of lambda must have same length
