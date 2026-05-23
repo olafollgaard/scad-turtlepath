@@ -213,15 +213,7 @@ assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_p
 
 function tp3d_Pivot(acc,debug_prefix,a_horz=0,a_vert=0,a_roll=0) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
-assert(is_num(a_horz) && is_num(a_vert) && is_num(a_roll),debug_prefix)
 let(hv_org=acc.y[len(acc.y)-1],
 	nv_org=acc.z[len(acc.z)-1],
-	hv_h=a_horz==0 ? hv_org : Rotate3dVector(v=hv_org,k=nv_org,a=a_horz,debug_prefix=debug_prefix),
-	nv_h=nv_org,
-	sv_h=-cross(nv_h,hv_h),
-	hv_v=a_vert==0 ? hv_h : Rotate3dVector(v=hv_h,k=sv_h,a=a_vert,debug_prefix=debug_prefix),
-	nv_v=a_vert==0 ? nv_h : Rotate3dVector(v=nv_h,k=sv_h,a=a_vert,debug_prefix=debug_prefix),
-	hv_r=hv_v,
-	nv_r=a_roll==0 ? nv_v : Rotate3dVector(v=nv_v,k=hv_v,a=-a_roll,debug_prefix=debug_prefix),
-	)
-tp3d_PivotTo(acc,debug_prefix,hv_r,nv_r);
+	rv=Rotate3dVector_hvr(hv_org,nv_org,a_horz,a_vert,a_roll,debug_prefix))
+tp3d_PivotTo(acc,debug_prefix,rv.x,rv.y);
