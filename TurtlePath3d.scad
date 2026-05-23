@@ -102,13 +102,11 @@ assert(is_num(di),debug_prefix)
 function tp3d_Straight(acc,debug_prefix,d,n=1) =
 assert(is_num(d) && d>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
-let(sp=acc.x[len(acc.x)-1],
-	hv=acc.y[len(acc.y)-1],
-	nv=acc.z[len(acc.z)-1])
+let(cu=tp3d_GetCursor(acc))
 [
-	[ for(i=[1:n]) sp+hv*d*i/n ],
-	[ for(i=[1:n]) hv ],
-	[ for(i=[1:n]) nv ],
+	[ for(i=[1:n]) cu.x+cu.y*d*i/n ],
+	[ for(i=[1:n]) cu.y ],
+	[ for(i=[1:n]) cu.z ],
 ];
 
 /***************************************************************************************/
@@ -120,13 +118,11 @@ assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(r) && r>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
 assert(is_undef(dn) || is_num(dn) || is_function(dn),debug_prefix)
-let(sp=acc.x[len(acc.x)-1],
-	hv=acc.y[len(acc.y)-1],
-	nv=acc.z[len(acc.z)-1],
-	cv=cross(nv,hv)*sign(a),
+let(cu=tp3d_GetCursor(acc),
+	cv=cross(cu.z,cu.y)*sign(a),
 	cvr=r*cv/norm(cv),
-	c=sp+cvr,
-	q=Rotation3dAxis_Quaternion(nv,a/n,debug_prefix),
+	c=cu.x+cvr,
+	q=Rotation3dAxis_Quaternion(cu.z,a/n,debug_prefix),
 	turn_cvr=tp3d_rotateSteps(-cvr,q,n,debug_prefix))
 [
 	[
@@ -135,10 +131,10 @@ let(sp=acc.x[len(acc.x)-1],
 			: is_function(dn) ? dn((i+1)/n)
 			: 0)
 		assert(is_num(d),debug_prefix)
-		c + turn_cvr[i] + nv*d
+		c + turn_cvr[i] + cu.z*d
 	],
-	[ each tp3d_rotateSteps(hv,q,n,debug_prefix) ],
-	[ for(i=[1:n]) nv ],
+	[ each tp3d_rotateSteps(cu.y,q,n,debug_prefix) ],
+	[ for(i=[1:n]) cu.z ],
 ];
 
 /***************************************************************************************/
@@ -150,12 +146,10 @@ assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(r) && r>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
 assert(is_undef(ds) || is_num(ds) || is_function(ds),debug_prefix)
-let(sp=acc.x[len(acc.x)-1],
-	hv=acc.y[len(acc.y)-1],
-	nv=acc.z[len(acc.z)-1],
-	sv=-cross(nv,hv),
-	cvr=r*nv*sign(a),
-	c=sp+cvr,
+let(cu=tp3d_GetCursor(acc),
+	sv=-cross(cu.z,cu.y),
+	cvr=r*cu.z*sign(a),
+	c=cu.x+cvr,
 	q=Rotation3dAxis_Quaternion(sv,a/n,debug_prefix),
 	turn_cvr=tp3d_rotateSteps(-cvr,q,n,debug_prefix))
 [
@@ -167,8 +161,8 @@ let(sp=acc.x[len(acc.x)-1],
 		assert(is_num(d),debug_prefix)
 		c + turn_cvr[i] + sv*d
 	],
-	[ each tp3d_rotateSteps(hv,q,n,debug_prefix) ],
-	[ each tp3d_rotateSteps(nv,q,n,debug_prefix) ],
+	[ each tp3d_rotateSteps(cu.y,q,n,debug_prefix) ],
+	[ each tp3d_rotateSteps(cu.z,q,n,debug_prefix) ],
 ];
 
 /***************************************************************************************/
@@ -179,14 +173,12 @@ assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(d) && d>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
-let(sp=acc.x[len(acc.x)-1],
-	hv=acc.y[len(acc.y)-1],
-	nv=acc.z[len(acc.z)-1],
-	q=Rotation3dAxis_Quaternion(hv,-a/n,debug_prefix))
+let(cu=tp3d_GetCursor(acc),
+	q=Rotation3dAxis_Quaternion(cu.y,-a/n,debug_prefix))
 [
-	[ for(i=[1:n]) sp + hv*d*i/n ],
-	[ for(i=[1:n]) hv ],
-	[ each tp3d_rotateSteps(nv,q,n,debug_prefix) ],
+	[ for(i=[1:n]) cu.x + cu.y*d*i/n ],
+	[ for(i=[1:n]) cu.y ],
+	[ each tp3d_rotateSteps(cu.z,q,n,debug_prefix) ],
 ];
 
 function tp3d_rotateSteps(v,q,n,debug_prefix) =
@@ -213,7 +205,6 @@ assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_p
 
 function tp3d_Pivot(acc,debug_prefix,a_horz=0,a_vert=0,a_roll=0) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
-let(hv_org=acc.y[len(acc.y)-1],
-	nv_org=acc.z[len(acc.z)-1],
-	rv=Rotate3dVector_hvr(hv_org,nv_org,a_horz,a_vert,a_roll,debug_prefix))
+let(cu=tp3d_GetCursor(acc),
+	rv=Rotate3dVector_hvr(cu.y,cu.z,a_horz,a_vert,a_roll,debug_prefix))
 tp3d_PivotTo(acc,debug_prefix,rv.x,rv.y);
