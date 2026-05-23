@@ -68,13 +68,13 @@ function tp3d_GetPathXY(acc,skip_last=false) =
 [ for(i=[0:len(acc.x)-(skip_last ? 2 : 1)]) let(p=acc.x[i]) [p.x,p.y] ];
 
 /***************************************************************************************/
-// Extract last point, hv and nv from the accumulated result
+// Extract point, hv and nv from the accumulated result
+// - step: >= 0 to index from the start, < 0 to index 'backwards'
 
-function tp3d_GetCursor(acc) =
-let(sp=acc.x[len(acc.x)-1],
-	hv=acc.y[len(acc.y)-1],
-	nv=acc.z[len(acc.z)-1])
-[ sp,hv,nv ];
+function tp3d_GetCursor(acc,debug_prefix="",step=-1) =
+let(idx=step>=0 ? step : len(acc.x)+step)
+assert(idx>=0 && idx<len(acc.x),debug_prefix)
+[ acc.x[idx], acc.y[idx], acc.z[idx] ];
 
 /***************************************************************************************/
 // Lookup the step index of a given label
@@ -102,7 +102,7 @@ assert(is_num(di),debug_prefix)
 function tp3d_Straight(acc,debug_prefix,d,n=1) =
 assert(is_num(d) && d>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
-let(cu=tp3d_GetCursor(acc))
+let(cu=tp3d_GetCursor(acc,debug_prefix))
 [
 	[ for(i=[1:n]) cu.x+cu.y*d*i/n ],
 	[ for(i=[1:n]) cu.y ],
@@ -118,7 +118,7 @@ assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(r) && r>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
 assert(is_undef(dn) || is_num(dn) || is_function(dn),debug_prefix)
-let(cu=tp3d_GetCursor(acc),
+let(cu=tp3d_GetCursor(acc,debug_prefix),
 	cv=cross(cu.z,cu.y)*sign(a),
 	cvr=r*cv/norm(cv),
 	c=cu.x+cvr,
@@ -146,7 +146,7 @@ assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(r) && r>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
 assert(is_undef(ds) || is_num(ds) || is_function(ds),debug_prefix)
-let(cu=tp3d_GetCursor(acc),
+let(cu=tp3d_GetCursor(acc,debug_prefix),
 	sv=-cross(cu.z,cu.y),
 	cvr=r*cu.z*sign(a),
 	c=cu.x+cvr,
@@ -173,7 +173,7 @@ assert(is_list(acc) && len(acc)>=3,debug_prefix)
 assert(is_num(a) && a!=0,debug_prefix)
 assert(is_num(d) && d>0,debug_prefix)
 assert(is_num(n) && n>0,debug_prefix)
-let(cu=tp3d_GetCursor(acc),
+let(cu=tp3d_GetCursor(acc,debug_prefix),
 	q=Rotation3dAxis_Quaternion(cu.y,-a/n,debug_prefix))
 [
 	[ for(i=[1:n]) cu.x + cu.y*d*i/n ],
@@ -205,6 +205,6 @@ assert(len(AssertValidVectorList([nv],3,require_nonzero_norm=true,prefix=debug_p
 
 function tp3d_Pivot(acc,debug_prefix,a_horz=0,a_vert=0,a_roll=0) =
 assert(is_list(acc) && len(acc)>=3,debug_prefix)
-let(cu=tp3d_GetCursor(acc),
+let(cu=tp3d_GetCursor(acc,debug_prefix),
 	rv=Rotate3dVector_hvr(cu.y,cu.z,a_horz,a_vert,a_roll,debug_prefix))
 tp3d_PivotTo(acc,debug_prefix,rv.x,rv.y);
