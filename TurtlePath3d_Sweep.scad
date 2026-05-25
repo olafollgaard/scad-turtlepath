@@ -103,52 +103,10 @@ let(path_loop= closure_type=="torus" || closure_type=="path-loop"
 	: closure_type=="zip-edges" ? floor(ptn/2) : 0,
 	faces=[
 		each tp3d_Sweep_WallFaces(profile_len=prn,path_len=wallfaces_ptn,path_loop=path_loop,profile_loop=profile_loop,debug_prefix=debug_prefix),
-		each closure_type=="zip-ends" ?
-		let(zLb=[for(i=[0:zn-1]) pidx(zs+i,0)],
-			zRb=[for(i=[0:zn-1]) pidx(zs+prn-1-i,0)],
-			zLe=[for(i=[0:zn-1]) pidx(zs+i,ptn-1)],
-			zRe=[for(i=[0:zn-1]) pidx(zs+prn-1-i,ptn-1)])
-		[
-			for(i=[0:zn-2])
-			each [
-				[ zLb[i], zLb[i+1], zRb[i] ],
-				[ zLb[i+1], zRb[i+1], zRb[i] ],
-				[ zLe[i], zRe[i], zLe[i+1] ],
-				[ zLe[i+1], zRe[i], zRe[i+1] ]
-			],
-			if (prn%2>0)
-			each [
-				[ zRb[zn-1], zLb[zn-1], pidx(zs+zn,0) ],
-				[ zLe[zn-1], zRe[zn-1], pidx(zs+zn,ptn-1) ],
-			]
-		]
-		: closure_type=="bar" || closure_type=="face-ends" ? [
-			[for(i=[0:prn-1]) pidx(i,0)],
-			[for(i=[prn-1:-1:0]) pidx(i,ptn-1)]
-		]
-		: closure_type=="zip-edges" ?
-		let(zLb=[for(i=[0:zn-1]) pidx(0,zs+i)],
-			zRb=[for(i=[0:zn-1]) pidx(0,zs+ptn-1-i)],
-			zLe=[for(i=[0:zn-1]) pidx(prn-1,zs+i)],
-			zRe=[for(i=[0:zn-1]) pidx(prn-1,zs+ptn-1-i)])
-		[
-			for(i=[0:zn-2])
-			each [
-				[ zLb[i+1], zLb[i], zRb[i] ],
-				[ zRb[i+1], zLb[i+1], zRb[i] ],
-				[ zRe[i], zLe[i], zLe[i+1] ],
-				[ zRe[i], zLe[i+1], zRe[i+1] ]
-			],
-			if (ptn%2>0)
-			each [
-				[ zLb[zn-1], zRb[zn-1], pidx(0,zs+zn) ],
-				[ zRe[zn-1], zLe[zn-1], pidx(prn-1,zs+zn) ],
-			]
-		]
-		: closure_type=="plate-edge" || closure_type=="face-edges" ? [
-			[for(i=[ptn-1:-1:0]) pidx(0,i)],
-			[for(i=[0:ptn-1]) pidx(prn-1,i)],
-		]
+		each closure_type=="zip-ends" ? tp3d_Sweep_ZipEndFaces(ptn,prn,closure.y)
+		: closure_type=="bar" || closure_type=="face-ends" ? tp3d_Sweep_EndFaces(ptn,prn)
+		: closure_type=="zip-edges" ? tp3d_Sweep_ZipEdgeFaces(ptn,prn,closure.y)
+		: closure_type=="plate-edge" || closure_type=="face-edges" ? tp3d_Sweep_EdgeFaces(ptn,prn)
 		: closure_type=="cap-tube" ?
 		let(cpidx=function(pri,pti) pri%prn + (pti%wallfaces_ptn)*prn)
 		[
@@ -237,4 +195,78 @@ let(prn=profile_len,
 			pidx(i+0,p+1),
 		],
 	],
+];
+
+/*
+	Build closure faces by letting OpenSCAD sort out triangles for the end faces
+*/
+function tp3d_Sweep_EndFaces(ptn,prn) =
+let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn)
+[
+	[for(i=[0:prn-1]) pidx(i,0)],
+	[for(i=[prn-1:-1:0]) pidx(i,ptn-1)]
+];
+
+/*
+	Build closure faces by letting OpenSCAD sort out triangles for the edge faces
+*/
+function tp3d_Sweep_EdgeFaces(ptn,prn) =
+let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn)
+[
+	[for(i=[ptn-1:-1:0]) pidx(0,i)],
+	[for(i=[0:ptn-1]) pidx(prn-1,i)],
+];
+
+/*
+	Build closure faces by zipping together end points
+*/
+function tp3d_Sweep_ZipEndFaces(ptn,prn,zip_start=undef) =
+let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
+	zs=is_num(zip_start) ? zip_start : 0,
+	zn=floor(prn/2))
+[
+	let(zLb=[for(i=[0:zn-1]) pidx(zs+i,0)],
+		zRb=[for(i=[0:zn-1]) pidx(zs+prn-1-i,0)],
+		zLe=[for(i=[0:zn-1]) pidx(zs+i,ptn-1)],
+		zRe=[for(i=[0:zn-1]) pidx(zs+prn-1-i,ptn-1)])
+	[
+		for(i=[0:zn-2])
+		each [
+			[ zLb[i], zLb[i+1], zRb[i] ],
+			[ zLb[i+1], zRb[i+1], zRb[i] ],
+			[ zLe[i], zRe[i], zLe[i+1] ],
+			[ zLe[i+1], zRe[i], zRe[i+1] ]
+		],
+		if (prn%2>0)
+		each [
+			[ zRb[zn-1], zLb[zn-1], pidx(zs+zn,0) ],
+			[ zLe[zn-1], zRe[zn-1], pidx(zs+zn,ptn-1) ],
+		]
+	]
+];
+
+/*
+	Build closure faces by zipping together edge points
+*/
+function tp3d_Sweep_ZipEdgeFaces(ptn,prn,zip_start=undef) =
+let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
+	zs=is_num(zip_start) ? zip_start : 0,
+	zn=floor(ptn/2),
+	zLb=[for(i=[0:zn-1]) pidx(0,zs+i)],
+	zRb=[for(i=[0:zn-1]) pidx(0,zs+ptn-1-i)],
+	zLe=[for(i=[0:zn-1]) pidx(prn-1,zs+i)],
+	zRe=[for(i=[0:zn-1]) pidx(prn-1,zs+ptn-1-i)])
+[
+	for(i=[0:zn-2])
+	each [
+		[ zLb[i+1], zLb[i], zRb[i] ],
+		[ zRb[i+1], zLb[i+1], zRb[i] ],
+		[ zRe[i], zLe[i], zLe[i+1] ],
+		[ zRe[i], zLe[i+1], zRe[i+1] ]
+	],
+	if (ptn%2>0)
+	each [
+		[ zLb[zn-1], zRb[zn-1], pidx(0,zs+zn) ],
+		[ zRe[zn-1], zLe[zn-1], pidx(prn-1,zs+zn) ],
+	]
 ];
