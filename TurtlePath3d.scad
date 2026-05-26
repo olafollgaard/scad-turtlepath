@@ -4,13 +4,13 @@
 	Path/profile generation via step by step instructions
 	- Easier than managing and aligning rounded corner centers and angles manually
 	- Named in homage to https://en.wikipedia.org/wiki/Turtle_graphics
-	- This version is native 3d, supporting Yaw ("turn"), Pitch and Roll operations
-	- Also, the primary step parameters are relative to the current heading, just
-		like the original TurtleGraphics
+	- Native 3d, supporting Yaw/Turn (left/right), Pitch (up/down) and Roll (cw/ccw)
+	- The primary step parameters are relative to the current position and heading
 */
 use <Assertions.scad>;
 use <Rotate3dVector.scad>;
 use <TurtlePath3d_exec.scad>;
+use <Project3dVector.scad>;
 
 /***************************************************************************************/
 // Main TurtlePath3d function
@@ -100,7 +100,7 @@ assert(is_num(di),debug_prefix)
 // Step forward d mm in n steps
 
 function tp3d_Straight(acc,debug_prefix,d,n=1) =
-assert(is_num(d) && d>0,debug_prefix)
+assert(is_num(d) && d>0,str(debug_prefix,":d=",d))
 assert(is_num(n) && n>0,debug_prefix)
 let(cu=tp3d_GetCursor(acc,debug_prefix))
 [
@@ -108,6 +108,38 @@ let(cu=tp3d_GetCursor(acc,debug_prefix))
 	[ for(i=[1:n]) cu.y ],
 	[ for(i=[1:n]) cu.z ],
 ];
+
+/***************************************************************************************/
+// Step forward to intersection with a plane in n steps
+// - pp: Point on plane
+// - pnv: Plane normal vector
+// - dd: Distance delta, added to distance to intersection with plane
+
+function tp3d_ToPlane(acc,debug_prefix,pp,pnv,dd=0,n=1) =
+assert(is_num(dd),debug_prefix)
+let(c=tp3d_GetCursor(acc,debug_prefix),
+	d=tp3d_DistToPlane(sp=c.x,hv=c.y,pp=pp,pnv=pnv,debug_prefix)+dd)
+tp3d_Straight(acc,debug_prefix,d=d,n=n);
+
+/***************************************************************************************/
+// Calculate distance from sp along hv to intersection with plane with normal vector
+// - sp: Starting point
+// - hv: Heading vector
+// - pp: Point on plane
+// - pnv: Plane normal vector
+
+function tp3d_DistToPlane(sp,hv,pp,pnv,debug_prefix="") =
+let(check_hv=AssertValidVectorList([hv],3,require_nonzero_norm=true,prefix=debug_prefix),
+	check_pnv=AssertValidVectorList([pnv],3,require_nonzero_norm=true,prefix=debug_prefix),
+	hvu=hv/norm(hv),
+	pnvu=pnv/norm(pnv),
+	vPerpendicularToPlaneAndHeading=cross(hvu,pnvu),
+	ppt=Project3dPointToPlane(pt=pp,pnv=vPerpendicularToPlaneAndHeading,ppt=sp,debug_prefix=debug_prefix),
+	dSP=norm(VectorFrom3dPointToPlane(pt=sp,pnv=pnvu,ppt=ppt,debug_prefix=debug_prefix)),
+	// a . b = |a| |b| cos(a)
+	// cos(a) = adj/hyp  -->  hyp = adj/cos(a)
+	)
+abs(dSP/(hvu*pnvu));
 
 /***************************************************************************************/
 // Turn horizontally by angle a (positive:ccw,negative:cw) with radius r in n steps
