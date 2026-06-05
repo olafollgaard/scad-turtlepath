@@ -158,6 +158,66 @@ let(first_profile_pts=is_list(profile)
 [ for (step_pts=steps) each step_pts ];
 
 /*
+	Get edge point index lists
+	- if start_idx+/-list_len runs out of bounds it wraps around the path, like path_loop==true
+	- return [
+		[ [<pr0L>], [<pr0R>] ],
+		[ [<prnL>], [<prnR>] ],
+	]
+*/
+function tp3d_GetEdges(
+	// profile length
+	profile_len,
+	// path length
+	path_len,
+	// start index
+	start_idx,
+	// edge length
+	list_len,
+	// prefix for assertions
+	debug_prefix="GetEdgePoints") =
+assert(is_num(profile_len) && profile_len>0,debug_prefix)
+assert(is_num(path_len) && path_len>0,debug_prefix)
+assert(is_num(start_idx) && start_idx>=0,debug_prefix)
+assert(is_num(list_len) && list_len>0,debug_prefix)
+let(prn=profile_len,
+	ptn=path_len,
+	s=start_idx,
+	pidx=function(pri,pti)
+		let(pri_= pri>=0 ? pri%prn : ceil(abs(pri/prn))*prn+prn-abs(pri%prn),
+			pti_= pti>=0 ? pti%ptn : ceil(abs(pti/ptn))*ptn+ptn-abs(pti%ptn))
+		pri_%prn + (pti_%ptn)*prn)
+[
+	[
+		[ for(i=[0:list_len-1]) pidx(0,s+i) ],
+		[ for(i=[0:list_len-1]) pidx(0,s-i) ],
+	],
+	[
+		[ for(i=[0:list_len-1]) pidx(prn-1,s-i) ],
+		[ for(i=[0:list_len-1]) pidx(prn-1,s+i) ],
+	],
+];
+
+/*
+	Build ribbon faces for polyhedron
+*/
+function tp3d_Sweep_RibbonFaces(
+	// Left and Right side point references
+	L,R,
+	// prefix for assertions
+	debug_prefix="GenFaces") =
+assert(is_list(L) && is_list(R) && len(L)==len(R) && len(L)>1,debug_prefix)
+let(n=len(L),
+	chkL=[for(i=[0:n-1]) assert(is_num(L[i]) && is_num(R[i])) true],
+	si=L[0]==R[0] ? 1 : 0,
+	ei=L[n-1]==R[n-1] ? n-3 : n-2)
+[
+	if (L[0]==R[0]) [ R[0],R[1],L[1] ],
+	for(i=[si:ei]) each [ [R[i],R[i+1],L[i]], [R[i+1],L[i+1],L[i]] ],
+	if (L[n-1]==R[n-1]) [ R[n-2],R[n-1],L[n-2] ],
+];
+
+/*
 	Build wall faces for polyhedron
 	- only profile walls along the path, does not cap the ends
 */
@@ -172,8 +232,8 @@ function tp3d_Sweep_WallFaces(
 	profile_loop=true,
 	// prefix for assertions
 	debug_prefix="Sweep3dFaces") =
-assert(is_num(profile_len),debug_prefix)
-assert(is_num(path_len),debug_prefix)
+assert(is_num(profile_len) && profile_len>0,debug_prefix)
+assert(is_num(path_len) && path_len>0,debug_prefix)
 assert(is_bool(path_loop),debug_prefix)
 assert(is_bool(profile_loop),debug_prefix)
 let(prn=profile_len,

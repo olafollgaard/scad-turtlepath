@@ -7,7 +7,7 @@ use <TurtlePath3d_Sweep.scad>;
 test_profile=[for(a=[0:4]) let(r=1.2,a=270-72*a) r*[cos(a),sin(a)]];
 test_innerpr=[for(a=[0:4]) let(r=1.0,a=270-72*a) r*[cos(a),sin(a)]];
 
-let(pr=test_profile,
+*let(pr=test_profile,
 	pt=TurtlePath3d(steps=[
 		function(acc,dp) tp3d_Straight(acc,dp,d=3,n=2),
 		function(acc,dp) tp3d_AddLabel(acc,dp,name="test",di=42),
@@ -17,17 +17,17 @@ let(pr=test_profile,
 		function(acc,dp) tp3d_Roll(acc,dp,a=-30,d=2),
 	]))
 echo(str("labels: ",pt[3]))
-tp3d_Sweep(profile=pr,path=pt);
+TurtlePath3d_Sweep(profile=pr,path=pt);
 
-translate([5,0,0])
+*translate([5,0,0])
 let(pr=test_profile,
 	pt=TurtlePath3d(steps=[
 		function(acc,dp) tp3d_Straight(acc,dp,d=3,n=2),
 		function(acc,dp) tp3d_Pivot(acc,dp,a_roll=-15),
 	]))
-tp3d_Sweep(profile=pr,path=pt);
+TurtlePath3d_Sweep(profile=pr,path=pt);
 
-let(pr=TurtlePath3d(start_hv=[1,1,0],steps=[
+*let(pr=TurtlePath3d(start_hv=[1,1,0],steps=[
 		function(acc,dp) tp3d_Straight(acc,dp,d=2),
 		function(acc,dp) tp3d_Pivot(acc,dp,a_horz=45),
 		function(acc,dp) tp3d_Turn(acc,dp,a=-225,r=2,n=20),
@@ -40,4 +40,19 @@ let(pr=TurtlePath3d(start_hv=[1,1,0],steps=[
 		function(acc,dp) tp3d_Turn(acc,dp,a=90,r=2,n=10),
 		function(acc,dp) tp3d_Turn(acc,dp,a=-90,r=8,n=10),
 	]))
-tp3d_Sweep(profile=tp3d_GetPathXY(pr),path=pt,closure=["plate-edge"]);
+TurtlePath3d_Sweep(profile=tp3d_GetPathXY(pr),path=pt,closure=["plate-edge"]);
+
+let(pr=-test_profile,
+	pt=TurtlePath3d(steps=[
+		function(acc,dp) tp3d_Turn(acc,dp,a=-335,r=5,n=15)
+	]),
+	prn=len(pr),
+	ptn=len(pt.x),
+	pts=tp3d_SweepProfilePoints(path=pt,profile=pr),
+	wfcs=tp3d_Sweep_WallFaces(profile_len=prn,path_len=ptn,profile_loop=false,path_loop=true),
+	edges=tp3d_GetEdges(profile_len=prn,path_len=ptn,start_idx=0,list_len=4),
+	rfcs=tp3d_Sweep_RibbonFaces(L=edges.y.x,R=edges.y.y))
+{
+	%polyhedron(points=pts,faces=wfcs,convexity=10);
+	polyhedron(points=pts,faces=rfcs,convexity=10);
+}
