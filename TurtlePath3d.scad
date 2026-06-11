@@ -8,9 +8,8 @@
 	- The primary step parameters are relative to the current position and heading
 */
 use <Assertions.scad>;
-use <Rotate3dVector.scad>;
+use <TurtlePath3d_Vector.scad>;
 use <TurtlePath3d_exec.scad>;
-use <Project3dVector.scad>;
 
 /***************************************************************************************/
 // Main TurtlePath3d function

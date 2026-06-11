@@ -1,8 +1,37 @@
 /*
-	Vector rotation using quaternions
-	https://en.wikipedia.org/wiki/Quaternion
+	3d vector manipulation
 */
 use <Assertions.scad>;
+
+/***************************************************************************************/
+// Projection
+
+function Project3dVector(v,k,debug_prefix="") =
+// projB(A) = (A . B / |B|^2) * B
+let(check_v=AssertValidVectorList([v],3,require_nonzero_norm=false,prefix=debug_prefix),
+	check_k=AssertValidVectorList([k],3,require_nonzero_norm=true,prefix=debug_prefix),
+	dotVK=v*k,
+	sqrK=k*k,
+	factor=dotVK/sqrK)
+factor * k;
+
+function VectorFrom3dPointToPlane(pt,pnv,ppt,debug_prefix="") =
+let(check_pt=AssertValidVectorList([pt],3,require_nonzero_norm=false,prefix=debug_prefix),
+	check_pnv=AssertValidVectorList([pnv],3,require_nonzero_norm=true,prefix=debug_prefix),
+	check_ppt=AssertValidVectorList([ppt],3,require_nonzero_norm=false,prefix=debug_prefix))
+Project3dVector(ppt-pt,pnv,debug_prefix=debug_prefix);
+
+function DistanceFrom3dPointToPlane(pt,pnv,ppt,debug_prefix) =
+let(vDiff=VectorFrom3dPointToPlane(pt,pnv,ppt,debug_prefix))
+norm(vDiff);
+
+function Project3dPointToPlane(pt,pnv,ppt,debug_prefix="") =
+let(vDiff=VectorFrom3dPointToPlane(pt,pnv,ppt,debug_prefix))
+pt+vDiff;
+
+/***************************************************************************************/
+// Rotation using quaternions
+// https://en.wikipedia.org/wiki/Quaternion
 
 function Rotate3dVector(v,k,a,debug_prefix="") =
 Rotate3dVector_UseQuaternion(v,Rotation3dAxis_Quaternion(k,a,debug_prefix),debug_prefix);
@@ -47,3 +76,11 @@ let(w1=q1[0],x1=q1[1],y1=q1[2],z1=q1[3],
 
 function qt_Conjugate(q) =
 [ q[0], -q[1], -q[2], -q[3] ];
+
+/***************************************************************************************/
+// Other
+
+function GetVectorAngle(orgV,newV) =
+let(org_hv=orgV/norm(orgV),
+	new_hv=newV/norm(newV))
+acos(new_hv*org_hv);
