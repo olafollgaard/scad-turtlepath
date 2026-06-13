@@ -239,3 +239,68 @@ assert(is_list(acc) && len(acc)>=3,debug_prefix)
 let(cu=tp3d_GetCursor(acc,debug_prefix),
 	rv=Rotate3dVector_hvr(cu.y,cu.z,a_horz,a_vert,a_roll,debug_prefix))
 tp3d_PivotTo(acc,debug_prefix,rv.x,rv.y);
+
+/***************************************************************************************/
+// Step along a cubic Bezier curve in n steps
+// - https://en.wikipedia.org/wiki/B%C3%A9zier_curve
+// - sd: distance along current heading to the first intermediate point
+// - ept: end point
+// - ehv: heading vector from the end point forward
+// - env: normal vector from the end point up
+// - ed: distance from ept backwards along ehv to the second intermediate point
+// - cosfade: use cosfade instead of linear interpolation in last step to improve
+//		alignment with current and end heading
+
+function tp3d_Bezier(acc,debug_prefix,sd,ept,ehv,env,ed,n=10,cosfade=true) =
+assert(is_num(sd) && sd>0,debug_prefix)
+assert(is_num(ed) && ed>0,debug_prefix)
+assert(is_num(n) && n>1,debug_prefix)
+let(check_ept=AssertValidVectorList([ept],3,require_nonzero_norm=false,prefix=debug_prefix),
+	check_ehv=AssertValidVectorList([ehv],3,require_nonzero_norm=true,prefix=debug_prefix),
+	check_env=AssertValidVectorList([env],3,require_nonzero_norm=true,prefix=debug_prefix))
+assert(ehv*env==0,str(debug_prefix,":end heading and normal vectors must be perpendicular"))
+let(cur=tp3d_GetCursor(acc,debug_prefix),
+	sv=cur.y,
+	sn=cur.z,
+	ev=ehv/norm(ehv),
+	en=env/norm(env),
+	intA=cur.x+sd*sv,
+	intB=ept-ed*ev,
+	slen=norm(intA-cur.x)/n,
+	elen=norm(ept-intB)/n,
+	s=[for(i=[0:n]) i*slen*sv + cur.x],
+	e=[for(i=[0:n]) i*elen*ev + intB],
+	pts=[
+		cur.x,
+		for(i=[1:n-1]) s[i] + (e[i]-s[i])*(cosfade ? tp3d_CosFade(i/n) : i/n),
+		ept,
+	],
+	hvs=[
+		for(i=[1:n-1])
+		let(pp=pts[i-1],
+			cp=pts[i],
+			np= i+1<n ? pts[i+1] : ept,
+			hvA=(cp-pp)/norm(cp-pp),
+			hvB=(np-cp)/norm(np-cp),
+			ihv=(hvA+hvB)/norm(hvA+hvB))
+		ihv,
+		ev,
+	],
+	nvs=[
+		for(i=[1:n-1]) sn*en==1 ? sn :
+		let(hv=hvs[i],
+			spct=(n-i)/n,
+			epct=(i-0)/n,
+			nv=!cosfade ? sn*spct + en*epct : sn*tp3d_CosFade(spct) + en*tp3d_CosFade(epct),
+			cv=cross(nv/norm(nv),hv),
+			nnv=cross(hv,cv/norm(cv)))
+		nnv/norm(nnv),
+		en,
+	])
+[
+	[ for(i=[1:n]) pts[i] ], hvs, nvs,
+];
+
+function tp3d_CosFade(pct,a=0,b=1) =
+let(p=pct < 0 ? 0 : pct > 1 ? 1 : pct)
+a + (b-a) * (1-cos(p*180)) / 2;

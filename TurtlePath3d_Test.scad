@@ -48,7 +48,7 @@ let(pr=TurtlePath3d(start_hv=[1,1,0],steps=[
 TurtlePath3d_Sweep(profile=tp3d_GetPathXY(pr),path=pt,closure=["plate-edge"]);
 /**/
 
-// ribbon faces
+/*/ ribbon faces
 let(pr=-test_profile,
 	pt=TurtlePath3d(steps=[
 		function(acc,dp) tp3d_Turn(acc,dp,a=-335,r=5,n=15)
@@ -63,4 +63,12 @@ let(pr=-test_profile,
 	%polyhedron(points=pts,faces=wfcs,convexity=10);
 	polyhedron(points=pts,faces=rfcs,convexity=10);
 }
+/**/
+
+// bezier curve
+let(pr=test_profile,
+	pt=TurtlePath3d(steps=[
+		function(acc,dp) tp3d_Bezier(acc,dp,sd=5,ept=[3,5,3],ehv=[1,0,0],env=[0,sin(36),cos(36)],ed=6,n=20),
+	]))
+TurtlePath3d_Sweep(profile=pr,path=pt);
 /**/
