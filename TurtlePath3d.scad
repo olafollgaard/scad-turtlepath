@@ -258,12 +258,13 @@ assert(is_num(n) && n>1,debug_prefix)
 let(check_ept=AssertValidVectorList([ept],3,require_nonzero_norm=false,prefix=debug_prefix),
 	check_ehv=AssertValidVectorList([ehv],3,require_nonzero_norm=true,prefix=debug_prefix),
 	check_env=AssertValidVectorList([env],3,require_nonzero_norm=true,prefix=debug_prefix))
-assert(ehv*env==0,str(debug_prefix,":end heading and normal vectors must be perpendicular"))
+assert(ehv*env!=1,str(debug_prefix,":end heading and normal vectors must not be parallel"))
 let(cur=tp3d_GetCursor(acc,debug_prefix),
 	sv=cur.y,
 	sn=cur.z,
 	ev=ehv/norm(ehv),
-	en=env/norm(env),
+	pnv=cross(ehv,cross(env,ehv)),
+	en=pnv/norm(pnv),
 	intA=cur.x+sd*sv,
 	intB=ept-ed*ev,
 	slen=norm(intA-cur.x)/n,
