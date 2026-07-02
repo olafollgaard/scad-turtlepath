@@ -2,6 +2,7 @@
 	TurtlePath 3d Sweep
 */
 use <Assertions.scad>;
+use <TurtlePath3d_exec.scad>;
 
 /***************************************************************************************/
 // Sweep module, building a solid from TurtlePath3d results
@@ -127,7 +128,6 @@ let(path_loop= closure_type=="torus" || closure_type=="path-loop"
 */
 function tp3d_SweepProfilePoints(
 	path,
-	loop=false,
 	debug_prefix="Sweep3dProfile",
 	profile=function(step) []) =
 let(first_profile_pts=is_list(profile)
@@ -158,45 +158,96 @@ let(first_profile_pts=is_list(profile)
 [ for (step_pts=steps) each step_pts ];
 
 /*
-	Get edge point index lists
-	- if start_idx+/-list_len runs out of bounds it wraps around the path, like path_loop==true
-	- return [
-		[ [<pr0L>], [<pr0R>] ],
-		[ [<prnL>], [<prnR>] ],
-	]
+	Get edge point
 */
-function tp3d_GetEdges(
+function tp3d_Sweep_GetEdgePt(
+	path,
+	profile_len,
+	pr_start,
+	pt,
+	debug_prefix="GetEdgePt") =
+assert(is_list(path) && len(path)>3 && is_list(path.x) && is_list(path[3]),debug_prefix)
+assert(is_num(profile_len) && profile_len>0,debug_prefix)
+assert(is_bool(pr_start),debug_prefix)
+let(idx=is_num(pt) ? pt : tp3d_execIdxByLabel(pt,path,debug_prefix),
+	prn=profile_len,
+	ptn=len(path.x),
+	pri=pr_start ? 0 : prn-1,
+	pidx=function(pti)
+		let(pri_= pri>=0 ? pri%prn : ceil(abs(pri/prn))*prn+prn-abs(pri%prn),
+			pti_= pti>=0 ? pti%ptn : ceil(abs(pti/ptn))*ptn+ptn-abs(pti%ptn))
+		pri_%prn + (pti_%ptn)*prn)
+pidx(idx);
+
+/*
+	Get edge point index list
+	- if start_idx+/-list_len runs out of bounds it wraps around the path, like path_loop==true
+*/
+function tp3d_Sweep_GetEdge(
+	//  path TurtlePath3d result, only used for path length (len(path.x)) and labels (path[3])
+	path,
 	// profile length
 	profile_len,
-	// path length
-	path_len,
-	// start index
-	start_idx,
-	// edge length
-	list_len,
+	// which edge: true => pr[0], false => pr[profile_len-1]
+	pr_start,
+	// start index or label
+	edge_s,
+	// end index or label
+	edge_e,
+	// direction (0=auto)
+	edge_d=0,
 	// prefix for assertions
-	debug_prefix="GetEdgePoints") =
+	debug_prefix="GetEdge") =
+assert(is_list(path) && len(path)>3 && is_list(path.x) && is_list(path[3]),debug_prefix)
 assert(is_num(profile_len) && profile_len>0,debug_prefix)
-assert(is_num(path_len) && path_len>0,debug_prefix)
-assert(is_num(start_idx) && start_idx>=0,debug_prefix)
-assert(is_num(list_len) && list_len>0,debug_prefix)
+assert(is_bool(pr_start),debug_prefix)
+assert(is_num(edge_s) || is_string(edge_s),debug_prefix)
+assert(is_num(edge_e) || is_string(edge_e),debug_prefix)
+let(_si=is_num(edge_s) ? edge_s : tp3d_execIdxByLabel(edge_s,path,debug_prefix),
+	_ei=is_num(edge_e) ? edge_e : tp3d_execIdxByLabel(edge_e,path,debug_prefix))
+assert(is_num(edge_d),debug_prefix)
+assert(_si!=_ei,debug_prefix)
 let(prn=profile_len,
-	ptn=path_len,
-	s=start_idx,
-	pidx=function(pri,pti)
+	ptn=len(path.x),
+	di=edge_d>0 ? +1 : edge_d<0 ? -1 : _si<_ei ? +1 : -1,
+	si=_si,
+	ei=di>0 && _ei>_si || di<0 && _ei<_si ? _ei : _ei + di*ptn,
+	pri=pr_start ? 0 : prn-1,
+	pidx=function(pti)
 		let(pri_= pri>=0 ? pri%prn : ceil(abs(pri/prn))*prn+prn-abs(pri%prn),
 			pti_= pti>=0 ? pti%ptn : ceil(abs(pti/ptn))*ptn+ptn-abs(pti%ptn))
 		pri_%prn + (pti_%ptn)*prn)
 [
-	[
-		[ for(i=[0:list_len-1]) pidx(0,s+i) ],
-		[ for(i=[0:list_len-1]) pidx(0,s-i) ],
-	],
-	[
-		[ for(i=[0:list_len-1]) pidx(prn-1,s-i) ],
-		[ for(i=[0:list_len-1]) pidx(prn-1,s+i) ],
-	],
+	for(i=[si:di:ei]) pidx(i)
 ];
+
+/*
+	Build edge ribbon faces from for polyhedron
+*/
+function tp3d_Sweep_EdgeRibbonFaces(
+	//  path TurtlePath3d result, only used for path length (len(path.x)) and labels (path[3])
+	path,
+	// profile length
+	profile_len,
+	// which edge: true => pr[0], false => pr[profile_len-1]
+	pr_start,
+	// left start index or label
+	l_edge_s,
+	// left end index or label
+	l_edge_e,
+	// right start index or label
+	r_edge_s,
+	// right end index or label
+	r_edge_e,
+	// left edge direction
+	l_edge_d=0,
+	// right edge direction
+	r_edge_d=0,
+	// prefix for assertions
+	debug_prefix="EdgeFaces") =
+let(L=tp3d_Sweep_GetEdge(path,profile_len,pr_start,l_edge_s,l_edge_e,l_edge_d,debug_prefix=str(debug_prefix,".left")),
+	R=tp3d_Sweep_GetEdge(path,profile_len,pr_start,r_edge_s,r_edge_e,r_edge_d,debug_prefix=str(debug_prefix,".right")))
+tp3d_Sweep_RibbonFaces(L,R,debug_prefix);
 
 /*
 	Build ribbon faces for polyhedron
@@ -206,16 +257,47 @@ function tp3d_Sweep_RibbonFaces(
 	L,R,
 	// prefix for assertions
 	debug_prefix="GenFaces") =
-assert(is_list(L) && is_list(R) && len(L)==len(R) && len(L)>1,debug_prefix)
+assert(is_list(L) && is_list(R),debug_prefix)
+assert(len(L)==len(R) && len(L)>1,str(debug_prefix," #L=",len(L)," #R=",len(R)))
 let(n=len(L),
 	chkL=[for(i=[0:n-1]) assert(is_num(L[i]) && is_num(R[i])) true],
 	si=L[0]==R[0] ? 1 : 0,
 	ei=L[n-1]==R[n-1] ? n-3 : n-2)
 [
-	if (L[0]==R[0]) [ R[0],R[1],L[1] ],
-	for(i=[si:ei]) each [ [R[i],R[i+1],L[i]], [R[i+1],L[i+1],L[i]] ],
-	if (L[n-1]==R[n-1]) [ R[n-2],R[n-1],L[n-2] ],
+	if (L[0]==R[0]) [ R[0],L[1],R[1] ],
+	for(i=[si:ei]) each [ [R[i],L[i],R[i+1]], [R[i+1],L[i],L[i+1]] ],
+	if (L[n-1]==R[n-1]) [ R[n-2],L[n-2],R[n-1] ],
 ];
+
+/*
+	Build tile faces from edge points
+*/
+function tp3d_Sweep_EdgeTileFaces(
+	//  path TurtlePath3d result, only used for path length (len(path.x)) and labels (path[3])
+	path,
+	// profile length
+	profile_len,
+	// which edge: true => pr[0], false => pr[profile_len-1]
+	pr_start,
+	// left start index or label
+	l_edge_s,
+	// left end index or label
+	l_edge_e,
+	// right start index or label
+	r_edge_s,
+	// right end index or label
+	r_edge_e,
+	// prefix for assertions
+	debug_prefix="EdgeFaces") =
+let(L=[
+		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,l_edge_s,debug_prefix=str(debug_prefix,".left")),
+		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,l_edge_e,debug_prefix=str(debug_prefix,".left")),
+	],
+	R=[
+		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,r_edge_s,debug_prefix=str(debug_prefix,".right")),
+		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,r_edge_e,debug_prefix=str(debug_prefix,".right")),
+	])
+tp3d_Sweep_RibbonFaces(L,R,debug_prefix);
 
 /*
 	Build wall faces for polyhedron

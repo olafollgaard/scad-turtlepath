@@ -57,7 +57,7 @@ let(pr=-test_profile,
 	ptn=len(pt.x),
 	pts=tp3d_SweepProfilePoints(path=pt,profile=pr),
 	wfcs=tp3d_Sweep_WallFaces(profile_len=prn,path_len=ptn,profile_loop=false,path_loop=true),
-	edges=tp3d_GetEdges(profile_len=prn,path_len=ptn,start_idx=0,list_len=4),
+	edges=tp3d_Sweep_GetEdges(profile_len=prn,path_len=ptn,start_idx=0,list_len=4),
 	rfcs=tp3d_Sweep_RibbonFaces(L=edges.y.x,R=edges.y.y))
 {
 	%polyhedron(points=pts,faces=wfcs,convexity=10);
