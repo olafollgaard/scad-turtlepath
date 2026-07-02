@@ -37,7 +37,9 @@ function TurtlePath3d(
 	// drop_last: Drop last point in path, to avoid duplicate point when creating a loop
 	drop_last=false,
 	// debug_prefix: Prefix for assertion messages
-	debug_prefix = "Path3d") =
+	debug_prefix = "Path3d",
+	// incl_debug_labels: Add start label for each step
+	incl_debug_labels = false) =
 assert(is_list(steps) && len(steps)>0,debug_prefix)
 assert(len(AssertValidVectorList([start_pt],3,prefix=debug_prefix))==1,debug_prefix)
 assert(len(AssertValidVectorList([start_hv],3,require_nonzero_norm=true,prefix=debug_prefix))==1,debug_prefix)
@@ -52,7 +54,8 @@ let(nv_proj=start_hv*(start_hv*start_nv)/(start_hv*start_hv),
 		st=start_pt,
 		hv=start_hv/norm(start_hv),
 		nv=nv_perp/norm(nv_perp),
-		debug_prefix=debug_prefix))
+		debug_prefix=debug_prefix,
+		incl_debug_labels=incl_debug_labels))
 [
 	[ for(i=[0:len(pt.x)-(drop_last ? 2 : 1)]) pt.x[i] ],
 	for(i=[1:len(pt)-1]) pt[i],

@@ -4,8 +4,8 @@
 use <Assertions.scad>;
 
 // Execute steps and concatenate into full path
-function tp3d_execPath(steps,step_n,st,hv,nv,debug_prefix) =
-let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,nv,debug_prefix),
+function tp3d_execPath(steps,step_n,st,hv,nv,debug_prefix,incl_debug_labels=false) =
+let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,nv,debug_prefix,incl_debug_labels),
 	step_debug_prefix=str(debug_prefix,".",step_n),
 	curr=tp3d_execStep(acc,steps[step_n],step_debug_prefix),
 	path_pts=[ each acc.x, each curr.x ],
@@ -13,7 +13,7 @@ let(acc=step_n==0 ? [[st],[hv],[nv],[],[]] : tp3d_execPath(steps,step_n-1,st,hv,
 	: [ for(i=[0:len(acc.y)-2]) acc.y[i], curr.y[0] ], // pivot hv
 	path_nvs=len(curr.x)>0 || len(curr.z)==0 ? [ each acc.z, each curr.z ]
 	: [ for(i=[0:len(acc.z)-2]) acc.z[i], curr.z[0] ], // pivot nv
-	labels=[ each acc[3], [step_debug_prefix,len(acc.x)-1], each curr[3] ],
+	labels=[ each acc[3], if(incl_debug_labels) [step_debug_prefix,len(acc.x)-1], each curr[3] ],
 	stored=[ each acc[4], each curr[4] ])
 [ path_pts, path_hvs, path_nvs, labels, stored ];
 
