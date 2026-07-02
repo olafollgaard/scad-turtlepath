@@ -67,26 +67,20 @@ let(nv_proj=start_hv*(start_hv*start_nv)/(start_hv*start_hv),
 // - Intended for generating a profile for TurtlePath3d_Sweep() using TurtlePath3d()
 
 function tp3d_GetPathXY(acc,skip_last=false) =
-[ for(i=[0:len(acc.x)-(skip_last ? 2 : 1)]) let(p=acc.x[i]) [p.x,p.y] ];
+tp3d_execGetPathXY(acc=acc,skip_last=skip_last);
 
 /***************************************************************************************/
 // Extract point, hv and nv from the accumulated result
 // - step: >= 0 to index from the start, < 0 to index 'backwards'
 
 function tp3d_GetCursor(acc,debug_prefix="",step=-1) =
-let(idx=step>=0 ? step : len(acc.x)+step)
-assert(idx>=0 && idx<len(acc.x),debug_prefix)
-[ acc.x[idx], acc.y[idx], acc.z[idx] ];
+tp3d_execGetCursor(acc=acc,debug_prefix=debug_prefix,step=step);
 
 /***************************************************************************************/
 // Lookup the step index of a given label
 
 function tp3d_IdxByLabel(label,acc,debug_prefix="") =
-assert(is_string(label),debug_prefix)
-assert(is_list(acc) && len(acc)>3 && is_list(acc[3]),debug_prefix)
-let(found=[ for(p=acc[3]) if(p.x==label) p.y ])
-assert(len(found)>0,str(debug_prefix,":unknown label '",label,"'"))
-found.x;
+tp3d_execIdxByLabel(label=label,acc=acc,debug_prefix=debug_prefix);
 
 /***************************************************************************************/
 // Add label for previous step, with an optional 'delta' to adjust the recorded index
