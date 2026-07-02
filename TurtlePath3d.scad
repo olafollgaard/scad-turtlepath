@@ -302,3 +302,33 @@ let(cur=tp3d_GetCursor(acc,debug_prefix),
 function tp3d_CosFade(pct,a=0,b=1) =
 let(p=pct < 0 ? 0 : pct > 1 ? 1 : pct)
 a + (b-a) * (1-cos(p*180)) / 2;
+
+/***************************************************************************************/
+// Mirror preceding points back to given stop label
+
+function tp3d_Mirror(acc,debug_prefix,stop,mpt=undef,mhv=undef) =
+assert(is_string(stop),debug_prefix)
+let(si=len(acc.x) - (is_undef(mpt) ? 2 : 1),
+	ei=tp3d_IdxByLabel(stop,acc,debug_prefix),
+	cur=tp3d_GetCursor(acc,debug_prefix),
+	mp=is_undef(mpt) ? cur.x : AssertValidVectorList([mpt],3,require_nonzero_norm=false,prefix=debug_prefix).x,
+	mh_=is_undef(mhv) ? cur.y : AssertValidVectorList([mhv],3,require_nonzero_norm=true,prefix=debug_prefix).x,
+	mh=mh_/norm(mh_))
+assert(si>ei,debug_prefix)
+[
+	[
+		for(i=[si:-1:ei])
+		let(pt=acc.x[i])
+		pt + 2*VectorFrom3dPointToPlane(pt=pt,pnv=mh,ppt=mp,debug_prefix=debug_prefix)
+	],
+	[
+		for(i=[si:-1:ei])
+		let(hv=-acc.y[i])
+		hv + 2*VectorFrom3dPointToPlane(pt=hv,pnv=mh,ppt=[0,0,0],debug_prefix=debug_prefix)
+	],
+	[
+		for(i=[si:-1:ei])
+		let(nv=acc.z[i])
+		nv + 2*VectorFrom3dPointToPlane(pt=nv,pnv=mh,ppt=[0,0,0],debug_prefix=debug_prefix)
+	],
+];
