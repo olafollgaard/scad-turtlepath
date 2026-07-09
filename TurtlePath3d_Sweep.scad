@@ -163,16 +163,16 @@ let(first_profile_pts=is_list(profile)
 function tp3d_Sweep_GetEdgePt(
 	path,
 	profile_len,
-	pr_start,
+	edge,
 	pt,
 	debug_prefix="GetEdgePt") =
 assert(is_list(path) && len(path)>3 && is_list(path.x) && is_list(path[3]),debug_prefix)
 assert(is_num(profile_len) && profile_len>0,debug_prefix)
-assert(is_bool(pr_start),debug_prefix)
+assert(edge=="ps" || edge=="pe",debug_prefix)
 let(idx=is_num(pt) ? pt : tp3d_execIdxByLabel(pt,path,debug_prefix),
 	prn=profile_len,
 	ptn=len(path.x),
-	pri=pr_start ? 0 : prn-1,
+	pri=edge=="ps" ? 0 : prn-1,
 	pidx=function(pti)
 		let(pri_= pri>=0 ? pri%prn : ceil(abs(pri/prn))*prn+prn-abs(pri%prn),
 			pti_= pti>=0 ? pti%ptn : ceil(abs(pti/ptn))*ptn+ptn-abs(pti%ptn))
@@ -188,8 +188,8 @@ function tp3d_Sweep_GetEdge(
 	path,
 	// profile length
 	profile_len,
-	// which edge: true => pr[0], false => pr[profile_len-1]
-	pr_start,
+	// which edge: "ps" => pr[0], "pe" => pr[profile_len-1]
+	edge,
 	// start index or label
 	edge_s,
 	// end index or label
@@ -200,7 +200,7 @@ function tp3d_Sweep_GetEdge(
 	debug_prefix="GetEdge") =
 assert(is_list(path) && len(path)>3 && is_list(path.x) && is_list(path[3]),debug_prefix)
 assert(is_num(profile_len) && profile_len>0,debug_prefix)
-assert(is_bool(pr_start),debug_prefix)
+assert(edge=="ps" || edge=="pe",debug_prefix)
 assert(is_num(edge_s) || is_string(edge_s),debug_prefix)
 assert(is_num(edge_e) || is_string(edge_e),debug_prefix)
 let(_si=is_num(edge_s) ? edge_s : tp3d_execIdxByLabel(edge_s,path,debug_prefix),
@@ -212,7 +212,7 @@ let(prn=profile_len,
 	di=edge_d>0 ? +1 : edge_d<0 ? -1 : _si<_ei ? +1 : -1,
 	si=_si,
 	ei=di>0 && _ei>_si || di<0 && _ei<_si ? _ei : _ei + di*ptn,
-	pri=pr_start ? 0 : prn-1,
+	pri=edge=="ps" ? 0 : prn-1,
 	pidx=function(pti)
 		let(pri_= pri>=0 ? pri%prn : ceil(abs(pri/prn))*prn+prn-abs(pri%prn),
 			pti_= pti>=0 ? pti%ptn : ceil(abs(pti/ptn))*ptn+ptn-abs(pti%ptn))
@@ -229,8 +229,6 @@ function tp3d_Sweep_EdgeRibbonFaces(
 	path,
 	// profile length
 	profile_len,
-	// which edge: true => pr[0], false => pr[profile_len-1]
-	pr_start,
 	// left start index or label
 	l_edge_s,
 	// left end index or label
@@ -243,11 +241,21 @@ function tp3d_Sweep_EdgeRibbonFaces(
 	l_edge_d=0,
 	// right edge direction
 	r_edge_d=0,
+	// which edge: "ps" => pr[0], "pe" => pr[profile_len-1], "both" => both
+	edge="both",
 	// prefix for assertions
 	debug_prefix="EdgeFaces") =
-let(L=tp3d_Sweep_GetEdge(path,profile_len,pr_start,l_edge_s,l_edge_e,l_edge_d,debug_prefix=str(debug_prefix,".left")),
-	R=tp3d_Sweep_GetEdge(path,profile_len,pr_start,r_edge_s,r_edge_e,r_edge_d,debug_prefix=str(debug_prefix,".right")))
-tp3d_Sweep_RibbonFaces(L,R,debug_prefix);
+assert(edge=="ps" || edge=="pe" || edge=="both",debug_prefix)
+[
+	if (edge=="pe" || edge=="both")
+	each tp3d_Sweep_RibbonFaces(debug_prefix=debug_prefix,
+		L=tp3d_Sweep_GetEdge(path,profile_len,"pe",l_edge_s,l_edge_e,l_edge_d,debug_prefix=str(debug_prefix,"pe")),
+		R=tp3d_Sweep_GetEdge(path,profile_len,"pe",r_edge_s,r_edge_e,r_edge_d,debug_prefix=str(debug_prefix,"pe"))),
+	if (edge=="ps" || edge=="both")
+	each tp3d_Sweep_RibbonFaces(debug_prefix=debug_prefix,
+		L=tp3d_Sweep_GetEdge(path,profile_len,"ps",r_edge_s,r_edge_e,r_edge_d,debug_prefix=str(debug_prefix,"ps")),
+		R=tp3d_Sweep_GetEdge(path,profile_len,"ps",l_edge_s,l_edge_e,l_edge_d,debug_prefix=str(debug_prefix,"ps"))),
+];
 
 /*
 	Build ribbon faces for polyhedron
@@ -277,8 +285,6 @@ function tp3d_Sweep_EdgeTileFaces(
 	path,
 	// profile length
 	profile_len,
-	// which edge: true => pr[0], false => pr[profile_len-1]
-	pr_start,
 	// left start index or label
 	l_edge_s,
 	// left end index or label
@@ -287,17 +293,32 @@ function tp3d_Sweep_EdgeTileFaces(
 	r_edge_s,
 	// right end index or label
 	r_edge_e,
+	// which edge: "ps" => pr[0], "pe" => pr[profile_len-1], "both" => both
+	edge="both",
 	// prefix for assertions
 	debug_prefix="EdgeFaces") =
-let(L=[
-		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,l_edge_s,debug_prefix=str(debug_prefix,".left")),
-		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,l_edge_e,debug_prefix=str(debug_prefix,".left")),
-	],
-	R=[
-		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,r_edge_s,debug_prefix=str(debug_prefix,".right")),
-		tp3d_Sweep_GetEdgePt(path,profile_len,pr_start,r_edge_e,debug_prefix=str(debug_prefix,".right")),
-	])
-tp3d_Sweep_RibbonFaces(L,R,debug_prefix);
+[
+	if (edge=="pe" || edge=="both")
+	each tp3d_Sweep_RibbonFaces(debug_prefix=debug_prefix,
+		L=[
+			tp3d_Sweep_GetEdgePt(path,profile_len,"pe",l_edge_s,debug_prefix=str(debug_prefix,".left")),
+			tp3d_Sweep_GetEdgePt(path,profile_len,"pe",l_edge_e,debug_prefix=str(debug_prefix,".left")),
+		],
+		R=[
+			tp3d_Sweep_GetEdgePt(path,profile_len,"pe",r_edge_s,debug_prefix=str(debug_prefix,".right")),
+			tp3d_Sweep_GetEdgePt(path,profile_len,"pe",r_edge_e,debug_prefix=str(debug_prefix,".right")),
+		]),
+	if (edge=="ps" || edge=="both")
+	each tp3d_Sweep_RibbonFaces(debug_prefix=debug_prefix,
+		L=[
+			tp3d_Sweep_GetEdgePt(path,profile_len,"ps",r_edge_s,debug_prefix=str(debug_prefix,".left")),
+			tp3d_Sweep_GetEdgePt(path,profile_len,"ps",r_edge_e,debug_prefix=str(debug_prefix,".left")),
+		],
+		R=[
+			tp3d_Sweep_GetEdgePt(path,profile_len,"ps",l_edge_s,debug_prefix=str(debug_prefix,".right")),
+			tp3d_Sweep_GetEdgePt(path,profile_len,"ps",l_edge_e,debug_prefix=str(debug_prefix,".right")),
+		]),
+];
 
 /*
 	Build wall faces for polyhedron
