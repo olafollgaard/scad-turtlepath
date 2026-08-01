@@ -77,7 +77,7 @@ function tp3d_GetCursor(acc,debug_prefix="",step=-1) =
 tp3d_execGetCursor(acc=acc,debug_prefix=debug_prefix,step=step);
 
 /***************************************************************************************/
-// Lookup the step index of a given label
+// Lookup the step index of the given label
 
 function tp3d_IdxByLabel(label,acc,debug_prefix="") =
 tp3d_execIdxByLabel(label=label,acc=acc,debug_prefix=debug_prefix);
@@ -90,6 +90,22 @@ assert(is_string(name),debug_prefix)
 assert(is_num(di),debug_prefix)
 [
 	[],[],[],[[name,len(acc.x)-1+di]]
+];
+
+/***************************************************************************************/
+// Lookup the stored value with the given name
+
+function tp3d_StoredByName(name,acc,debug_prefix="") =
+tp3d_execStoredByName(name=name,acc=acc,debug_prefix=debug_prefix);
+
+/***************************************************************************************/
+// Add stored value with the given name
+
+function tp3d_AddStored(acc,debug_prefix,name,value) =
+assert(is_string(name),debug_prefix)
+assert(is_num(di),debug_prefix)
+[
+	[],[],[],[],[[name,value]]
 ];
 
 /***************************************************************************************/

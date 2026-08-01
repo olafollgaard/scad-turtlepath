@@ -70,10 +70,41 @@ let(idx=step>=0 ? step : len(acc.x)+step)
 assert(idx>=0 && idx<len(acc.x),debug_prefix)
 [ acc.x[idx], acc.y[idx], acc.z[idx] ];
 
-// Lookup the step index of a given label
+// Lookup the step index of the given label
 function tp3d_execIdxByLabel(label,acc,debug_prefix="") =
 assert(is_string(label),debug_prefix)
 assert(is_list(acc) && len(acc)>3 && is_list(acc[3]),debug_prefix)
-let(found=[ for(p=acc[3]) if(p.x==label) p.y ])
-assert(len(found)>0,str(debug_prefix,":unknown label '",label,"'"))
-found.x;
+let(lookup=acc[3],
+	idx=tp3d_execIdxOfName(label,lookup,debug_prefix))
+assert(idx>=0 && idx<len(lookup))
+assert(len(lookup[idx])>=2,debug_prefix)
+lookup[idx].y;
+
+// Lookup the stored value with the given name
+function tp3d_execStoredByName(name,acc,debug_prefix="") =
+assert(is_string(name),debug_prefix)
+assert(is_list(acc) && len(acc)>4,debug_prefix)
+let(lookup=acc[4],
+	idx=tp3d_execIdxOfName(name,lookup,debug_prefix))
+assert(len(lookup[idx])>=2,debug_prefix)
+lookup[idx].y;
+
+// Lookup index of a given name/label
+function tp3d_execIdxOfName(name,lookup,debug_prefix="") =
+assert(is_string(name),debug_prefix)
+assert(is_list(lookup),debug_prefix)
+let(namelist=[
+		for(i=[0:len(lookup)-1])
+		let(dp=str(debug_prefix,"@",i),
+			item=lookup[i])
+		assert(is_list(item),dp)
+		assert(len(item)>=1,dp)
+		assert(is_string(item.x),dp)
+		item.x
+	],
+	idxlist=[
+		for(i=[0:len(namelist)-1])
+		if (namelist[i]==name) i
+	])
+assert(len(idxlist)>0,str(debug_prefix,":could not find '",name,"'"))
+idxlist[0];
