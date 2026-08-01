@@ -363,27 +363,27 @@ let(prn=profile_len,
 /*
 	Build closure faces by letting OpenSCAD sort out triangles for the end faces
 */
-function tp3d_Sweep_EndFaces(ptn,prn) =
+function tp3d_Sweep_EndFaces(ptn,prn,s=true,e=true) =
 let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn)
 [
-	[for(i=[0:prn-1]) pidx(i,0)],
-	[for(i=[prn-1:-1:0]) pidx(i,ptn-1)]
+	if (s) [for(i=[0:prn-1]) pidx(i,0)],
+	if (e) [for(i=[prn-1:-1:0]) pidx(i,ptn-1)]
 ];
 
 /*
 	Build closure faces by letting OpenSCAD sort out triangles for the edge faces
 */
-function tp3d_Sweep_EdgeFaces(ptn,prn) =
+function tp3d_Sweep_EdgeFaces(ptn,prn,s=true,e=true) =
 let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn)
 [
-	[for(i=[ptn-1:-1:0]) pidx(0,i)],
-	[for(i=[0:ptn-1]) pidx(prn-1,i)],
+	if (s) [for(i=[ptn-1:-1:0]) pidx(0,i)],
+	if (e) [for(i=[0:ptn-1]) pidx(prn-1,i)],
 ];
 
 /*
 	Build closure faces by zipping together end points
 */
-function tp3d_Sweep_ZipEndFaces(ptn,prn,zip_start=undef) =
+function tp3d_Sweep_ZipEndFaces(ptn,prn,zip_start=undef,s=true,e=true) =
 let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
 	zs=is_num(zip_start) ? zip_start : 0,
 	zn=floor(prn/2))
@@ -395,15 +395,15 @@ let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
 	[
 		for(i=[0:zn-2])
 		each [
-			[ zLb[i], zLb[i+1], zRb[i] ],
-			[ zLb[i+1], zRb[i+1], zRb[i] ],
-			[ zLe[i], zRe[i], zLe[i+1] ],
-			[ zLe[i+1], zRe[i], zRe[i+1] ]
+			if (s) [ zLb[i], zLb[i+1], zRb[i] ],
+			if (s) [ zLb[i+1], zRb[i+1], zRb[i] ],
+			if (e) [ zLe[i], zRe[i], zLe[i+1] ],
+			if (e) [ zLe[i+1], zRe[i], zRe[i+1] ]
 		],
 		if (prn%2>0)
 		each [
-			[ zRb[zn-1], zLb[zn-1], pidx(zs+zn,0) ],
-			[ zLe[zn-1], zRe[zn-1], pidx(zs+zn,ptn-1) ],
+			if (s) [ zRb[zn-1], zLb[zn-1], pidx(zs+zn,0) ],
+			if (e) [ zLe[zn-1], zRe[zn-1], pidx(zs+zn,ptn-1) ],
 		]
 	]
 ];
@@ -411,7 +411,7 @@ let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
 /*
 	Build closure faces by zipping together edge points
 */
-function tp3d_Sweep_ZipEdgeFaces(ptn,prn,zip_start=undef) =
+function tp3d_Sweep_ZipEdgeFaces(ptn,prn,zip_start=undef,s=true,e=true) =
 let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
 	zs=is_num(zip_start) ? zip_start : 0,
 	zn=floor(ptn/2),
@@ -422,14 +422,14 @@ let(pidx=function(pri,pti) pri%prn + (pti%ptn)*prn,
 [
 	for(i=[0:zn-2])
 	each [
-		[ zLb[i+1], zLb[i], zRb[i] ],
-		[ zRb[i+1], zLb[i+1], zRb[i] ],
-		[ zRe[i], zLe[i], zLe[i+1] ],
-		[ zRe[i], zLe[i+1], zRe[i+1] ]
+		if (s) [ zLb[i+1], zLb[i], zRb[i] ],
+		if (s) [ zRb[i+1], zLb[i+1], zRb[i] ],
+		if (e) [ zRe[i], zLe[i], zLe[i+1] ],
+		if (e) [ zRe[i], zLe[i+1], zRe[i+1] ]
 	],
 	if (ptn%2>0)
 	each [
-		[ zLb[zn-1], zRb[zn-1], pidx(0,zs+zn) ],
-		[ zRe[zn-1], zLe[zn-1], pidx(prn-1,zs+zn) ],
+		if (s) [ zLb[zn-1], zRb[zn-1], pidx(0,zs+zn) ],
+		if (e) [ zRe[zn-1], zLe[zn-1], pidx(prn-1,zs+zn) ],
 	]
 ];
