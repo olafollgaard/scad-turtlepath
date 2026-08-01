@@ -65,10 +65,20 @@ let(pr=-test_profile,
 }
 /**/
 
-// bezier curve
+/*/ bezier curve
 let(pr=test_profile,
 	pt=TurtlePath3d(steps=[
 		function(acc,dp) tp3d_Bezier(acc,dp,sd=5,ept=[3,5,3],ehv=[1,0,0],env=[0,sin(36),cos(36)],ed=6,n=20),
 	]))
 TurtlePath3d_Sweep(profile=pr,path=pt);
+/**/
+
+// coil sample
+TurtlePath3d_Sweep(
+	debug_prefix="Coil",
+	profile=[[0,0],[2,+1],[2,-1]],
+	path=TurtlePath3d(debug_prefix="Coil path",start_pt=[2,0,0],steps=[
+		function(acc,dp) tp3d_Turn(acc,dp,a=2*360,r=2,dn=8,n=30)
+	])
+);
 /**/
