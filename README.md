@@ -16,3 +16,9 @@ This library is published under the [MIT license](LICENSE)
 ## Usage
 
 See [USAGE.md](USAGE.md).
+
+## OpenSCAD version
+
+As of time of writing, I am using OpenSCAD version 2026.07.01.fp (git 34a81df5b).
+
+I do not know if this library will work with the official latest release, which is version 2021.01.
