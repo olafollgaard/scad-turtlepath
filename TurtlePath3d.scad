@@ -66,8 +66,8 @@ let(nv_proj=start_hv*(start_hv*start_nv)/(start_hv*start_hv),
 // - Simply copies the X and Y parts of path_pts and drops the Z part
 // - Intended for generating a profile for TurtlePath3d_Sweep() using TurtlePath3d()
 
-function tp3d_GetPathXY(acc,skip_last=false) =
-tp3d_execGetPathXY(acc=acc,skip_last=skip_last);
+function tp3d_GetPathXY(path,skip_last=false) =
+tp3d_execGetPathXY(acc=path,skip_last=skip_last);
 
 /***************************************************************************************/
 // Extract point, hv and nv from the accumulated result

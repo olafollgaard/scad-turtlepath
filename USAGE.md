@@ -24,26 +24,31 @@ If `TurtlePath3d_Sweep()` is insufficient to your use case, see [USAGE.SweepUtil
 
 ## Other utility functions
 
-### `tp3d_GetPathXY(acc,skip_last=false)`
+### `tp3d_GetPathXY(path,skip_last=false)`
 
-Generate a 2d path from `acc`, the accumulated/main result.
+Generate a 2d path from `path`, the result of `TurtlePath3d()`.
 
 - Simply copies the X and Y parts of `path_pts` and drops the Z part
 - Intended for generating a 2d profile for e.g. `TurtlePath3d_Sweep()` using `TurtlePath3d()`
 
 ### `tp3d_GetCursor(acc,debug_prefix="",step=-1)`
 
-Extract `[pt,hv,nv]` from a step in the accumulated result.
+Extract `[pt,hv,nv]` from a step in `acc`.
 
+- `acc` - The `acc` parameter of a step instruction (`function(acc,dp)`), or the result of `TurtlePath3d()`
 - `step` - Use `>=0` to index from the start, `<0` to index 'backwards' from the end
 
 ### `tp3d_IdxByLabel(label,acc,debug_prefix="")`
 
-Lookup the step index of the given label.
+Lookup the step index of the given `label` in `acc`.
+
+- `acc` - The `acc` parameter of a step instruction (`function(acc,dp)`), or the result of `TurtlePath3d()`
 
 ### `tp3d_StoredByName(name,acc,debug_prefix="")`
 
-Lookup the stored value with the given name.
+Lookup the stored value with the given `name` in `acc`.
+
+- `acc` - The `acc` parameter of a step instruction (`function(acc,dp)`), or the result of `TurtlePath3d()`
 
 ### `tp3d_DistToPlane(sp,hv,pp,pnv,debug_prefix="")`
 

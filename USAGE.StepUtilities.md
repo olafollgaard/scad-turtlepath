@@ -5,7 +5,7 @@ The first two parameters of all step functions are `acc` and `debug_prefix`, and
 ### `tp3d_AddLabel(acc,dp,name,di=0)`
 
 - Add label for a step index
-- `name` - Label for previous step - duplicates not allowed
+- `name` - Label for latest step cursor position - duplicates not allowed
 - `di` - Optional 'delta' to adjust the recorded index backward (negative) or forward (positive)
 
 ### `tp3d_AddStored(acc,dp,name,value)`
@@ -22,15 +22,16 @@ The first two parameters of all step functions are `acc` and `debug_prefix`, and
 - `pp` - Point on plane
 - `pnv` - Plane normal vector
 - `dd` - Distance delta, added to distance to intersection with plane
+	- Useful for e.g. stopping short of the plane with enough space to fillet into the plane normal vector with `dd=tan(a)/r`, where `a` is the angle (`<90`) between `pnv` and the cursor `hv`, and `r` is the fillet radius.
 
 ### `tp3d_Turn(acc,dp,a,r,dn=undef,n=10)`
 
 - Turn 'horizontally' by angle `a` (positive:ccw,negative:cw) with radius `r` in `n` steps
 - `dn` - Translate steps along normal vector
-	- A simple number - Translate `dn` mm during turn, `dn/n` mm per step
-	- A `function(pct)` - Call function for each step to get its translation in mm
+	- A simple number - Translate `dn` mm during turn, i.e. `dn/n` mm per step
+	- A `function(pct)` - Call function for each step to get its translation distance in mm
 		- `pct` - turn completion percentage
-		- return translation in mm compared to current position, not individual step translation
+		- return distance in mm along normal vector, relative to the cursor position before the turn
 
 ### `tp3d_Pitch(acc,dp,a,r,ds=undef,n=10)`
 
@@ -39,11 +40,7 @@ The first two parameters of all step functions are `acc` and `debug_prefix`, and
 
 ### `tp3d_Roll(acc,dp,a,d,n=10)`
 
-- Roll around current heading vector by angle `a` (positive:ccw,negative:cw) in `d` mm in `n` steps
-
-### `tp3d_PivotTo(acc,dp,hv,nv)`
-
-- Pivot in place to given absolute `hv` and `nv`
+- Roll around current heading vector by angle `a` (positive:ccw,negative:cw) in `d` mm split into `n` steps
 
 ### `tp3d_Pivot(acc,dp,a_horz=0,a_vert=0,a_roll=0)`
 
@@ -51,17 +48,25 @@ The first two parameters of all step functions are `acc` and `debug_prefix`, and
 - `a_horz` - Angle to pivot 'left'/'right'
 - `a_vert` - Angle to pivot 'up'/'down'
 - `a_roll` - Angle to roll 'ccw'/'cw'
-- Pivot rotations are performed in the order horz, vert, roll
+- Pivot rotation operations are performed in order: horz, vert, roll
+
+### `tp3d_PivotTo(acc,dp,hv,nv)`
+
+- Pivot in place to given absolute `hv` and `nv`
 
 ### `tp3d_Bezier(acc,dp,sd,ept,ehv,env,ed,n=10,cosfade=true)`
 
-- Step along a cubic Bezier curve in n steps ([Wiki](https://en.wikipedia.org/wiki/B%C3%A9zier_curve))
+- Step along a cubic ([Bezier curve](https://en.wikipedia.org/wiki/B%C3%A9zier_curve)) in `n` steps
 - `sd`: Distance along current heading to the first intermediate point
 - `ept`: End point
 - `ehv`: Heading vector from the end point forward
 - `env`: Normal vector from the end point up
 - `ed`: Distance from ept backwards along ehv to the second intermediate point
-- `cosfade`: Use cosfade instead of linear interpolation in last step to improve alignment with current and end heading
+- `cosfade`: Use cosfade instead of linear interpolation in last phase of the Bezier algoritm to improve curve alignment with current and end heading
+
+> [!NOTE]
+>
+> `cosfade=true` is my personal hack, not any kind of standard, but you can revert to standard Bezier behavior if you use `cosfade=false`
 
 ### `tp3d_Mirror(acc,dp,stop,mpt=undef,mnv=undef)`
 

@@ -9,11 +9,10 @@
 - `profile` - The profile to sweep along the path
 	- Either a simple list of 2d points, e.g. `[ [-2,+1], [0,+2], [+2,+1], [+1,-2], [-1,-2] ]`
 	- Or a `function(i)` (with `i` being the step index) which must generate a simple list of 2d points.
-		> [!NOTE]
-		>
-		> Results for all values of `i` must be of the same length.
-
 		This is where the advanced (as in mind-bending) fun begins: change the profile depending on the position in the path.
+> [!NOTE]
+>
+> `function(i)` results must be of the same length for all values of `i`.
 
 - `path` - The result of a call to `TurtlePath3d()`
 - `closure=["bar"]` - How the faces should be generated:
