@@ -55,11 +55,9 @@
 ## Sample
 
 ```scad
-TurtlePath3d_Sweep(
-	debug_prefix="Coil",
-	profile=[[0,0],[2,+1],[2,-1]],
-	path=TurtlePath3d(debug_prefix="Coil path",start_pt=[2,0,0],steps=[
+let(pr=[[0,0],[2,+1],[2,-1]],
+	pt=TurtlePath3d(debug_prefix="Coil path",start_pt=[2,0,0],steps=[
 		function(acc,dp) tp3d_Turn(acc,dp,a=2*360,r=2,dn=8,n=30)
-	])
-);
+	]))
+TurtlePath3d_Sweep(debug_prefix="Coil",profile=pr,path=pt);
 ```
