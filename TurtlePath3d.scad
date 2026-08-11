@@ -322,13 +322,13 @@ a + (b-a) * (1-cos(p*180)) / 2;
 /***************************************************************************************/
 // Mirror preceding points back to given stop label
 
-function tp3d_Mirror(acc,debug_prefix,stop,mpt=undef,mhv=undef) =
+function tp3d_Mirror(acc,debug_prefix,stop,mpt=undef,mnv=undef) =
 assert(is_string(stop),debug_prefix)
 let(si=len(acc.x) - (is_undef(mpt) ? 2 : 1),
 	ei=tp3d_IdxByLabel(stop,acc,debug_prefix),
 	cur=tp3d_GetCursor(acc,debug_prefix),
 	mp=is_undef(mpt) ? cur.x : AssertValidVectorList([mpt],3,require_nonzero_norm=false,prefix=debug_prefix).x,
-	mh_=is_undef(mhv) ? cur.y : AssertValidVectorList([mhv],3,require_nonzero_norm=true,prefix=debug_prefix).x,
+	mh_=is_undef(mnv) ? cur.y : AssertValidVectorList([mnv],3,require_nonzero_norm=true,prefix=debug_prefix).x,
 	mh=mh_/norm(mh_))
 assert(si>ei,debug_prefix)
 [
