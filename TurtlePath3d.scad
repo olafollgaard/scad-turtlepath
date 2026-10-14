@@ -131,6 +131,8 @@ function tp3d_ToPlane(acc,debug_prefix,pp,pnv,dd=0,n=1) =
 assert(is_num(dd),debug_prefix)
 let(c=tp3d_GetCursor(acc,debug_prefix),
 	d=tp3d_DistToPlane(sp=c.x,hv=c.y,pp=pp,pnv=pnv,debug_prefix)+dd)
+assert(is_num(d),debug_prefix)
+assert(d>0,str(debug_prefix,":unreachable plane"))
 tp3d_Straight(acc,debug_prefix,d=d,n=n);
 
 /***************************************************************************************/
@@ -145,7 +147,8 @@ let(check_hv=AssertValidVectorList([hv],3,require_nonzero_norm=true,prefix=debug
 	check_pnv=AssertValidVectorList([pnv],3,require_nonzero_norm=true,prefix=debug_prefix),
 	hvu=hv/norm(hv),
 	pnvu=pnv/norm(pnv),
-	vPerpendicularToPlaneAndHeading=cross(hvu,pnvu),
+	hpcross=cross(hvu,pnvu),
+	vPerpendicularToPlaneAndHeading=norm(hpcross)>0 ? hpcross : [-hvu.y,hvu.x,hvu.z],
 	ppt=Project3dPointToPlane(pt=pp,pnv=vPerpendicularToPlaneAndHeading,ppt=sp,debug_prefix=debug_prefix),
 	dSP=norm(VectorFrom3dPointToPlane(pt=sp,pnv=pnvu,ppt=ppt,debug_prefix=debug_prefix)),
 	// a . b = |a| |b| cos(a)
